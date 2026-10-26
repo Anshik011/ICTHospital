@@ -266,7 +266,15 @@ class UsersController extends BaseController
 
     // The account to return to is the real signed-in admin, never a value
     // supplied in the URL: getLogout() passes it back to Auth::loginUsingId().
-    $adminId = Auth::id();
+    $admin = Auth::user();
+    $adminId = $admin->id;
+
+    if (function_exists('activity')) {
+      activity('impersonation')
+        ->causedBy($admin)
+        ->performedOn($user)
+        ->log("Admin '{$admin->login}' (ID: {$adminId}) assumed identity of user '{$user->login}' (ID: {$id})");
+    }
 
     request()->session()->forget('isAdmin');
     request()->session()->forget('adminID');
@@ -274,15 +282,11 @@ class UsersController extends BaseController
     request()->session()->put('isAdmin', 1);
     request()->session()->put('adminID', $adminId);
 
-    // echo request()->root();
-    //echo "<pre>rr".request()->session()->get('adminID')."tt";print_r($user);
     if (Auth::loginUsingId($id)) {
-
       $name  = Auth::user()->firstname . ' ' . Auth::user()->lastname;
       $login = Auth::user()->group;
       \Session::put('name', $name);
       \Session::put('userRole', $login);
-      //echo "adeel";
       return redirect('/dashboard');
     }
   }

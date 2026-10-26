@@ -12,6 +12,7 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -36,43 +37,50 @@ class DashboardController extends BaseController
         $error   = \Session::get('error');
         $success = \Session::get('success');
 
-        // ---- headline counts -------------------------------------------------
-        $totalPatients   = $this->count('patient');
-        $totalDoctors    = $this->count('doctor');
-        $totalNurses     = $this->count('nurse');
-        $totalStaff      = $totalDoctors + $totalNurses
-                         + $this->count('receptionist')
-                         + $this->count('pharmacist')
-                         + $this->count('laboratorist')
-                         + $this->count('accountant');
+        // ---- headline counts (cached 30s to prevent DB query storm) ----------
+        $stats = Cache::remember('dashboard_headline_metrics', 30, function () {
+            $totalPatients   = $this->count('patient');
+            $totalDoctors    = $this->count('doctor');
+            $totalNurses     = $this->count('nurse');
+            $totalStaff      = $totalDoctors + $totalNurses
+                             + $this->count('receptionist')
+                             + $this->count('pharmacist')
+                             + $this->count('laboratorist')
+                             + $this->count('accountant');
 
-        // ---- beds ------------------------------------------------------------
-        $totalBeds    = $this->count('bed');
-        // alloted_bed keeps every stay, discharged ones included; a bed is occupied
-        // only while its admission has no discharge time (same rule as the reports).
-        $occupiedBeds = Schema::hasTable('alloted_bed')
-            ? (int) DB::table('alloted_bed')->whereNull('d_time')->count()
-            : 0;
-        $freeBeds     = max($totalBeds - $occupiedBeds, 0);
-        $occupancy    = $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100) : 0;
+            // ---- beds ------------------------------------------------------------
+            $totalBeds    = $this->count('bed');
+            $occupiedBeds = Schema::hasTable('alloted_bed')
+                ? (int) DB::table('alloted_bed')->whereNull('d_time')->count()
+                : 0;
+            $freeBeds     = max($totalBeds - $occupiedBeds, 0);
+            $occupancy    = $totalBeds > 0 ? round(($occupiedBeds / $totalBeds) * 100) : 0;
 
-        // ---- appointments ----------------------------------------------------
-        $totalAppointments   = $this->count('appointment');
-        $pendingAppointments = $this->countWhere('appointment', 'status', 'pending');
+            // ---- appointments ----------------------------------------------------
+            $totalAppointments   = $this->count('appointment');
+            $pendingAppointments = $this->countWhere('appointment', 'status', 'pending');
 
-        // ---- clinical activity ----------------------------------------------
-        $totalPrescriptions = $this->count('prescription');
-        $totalLabTests      = $this->count('lab');
-        $totalReports       = $this->count('diagnostic_report');
-        $totalMedicines     = $this->count('medicine');
+            // ---- clinical activity ----------------------------------------------
+            $totalPrescriptions = $this->count('prescription');
+            $totalLabTests      = $this->count('lab');
+            $totalReports       = $this->count('diagnostic_report');
+            $totalMedicines     = $this->count('medicine');
 
-        // ---- money -----------------------------------------------------------
-        // Patient payments, plus income and expenses entered in Accounting (the
-        // accounting table, type Income / Expence). The legacy expense table has no
-        // screen any more but is still counted in case an older install holds data.
-        $income   = $this->sum('payment', 'amount_received') + $this->accountingTotal('Income');
-        $expenses = $this->sum('expense', 'amount') + $this->accountingTotal('Expence');
-        $balance  = $income - $expenses;
+            // ---- money -----------------------------------------------------------
+            $income   = $this->sum('payment', 'amount_received') + $this->accountingTotal('Income');
+            $expenses = $this->sum('expense', 'amount') + $this->accountingTotal('Expence');
+            $balance  = $income - $expenses;
+
+            return compact(
+                'totalPatients', 'totalDoctors', 'totalNurses', 'totalStaff',
+                'totalBeds', 'occupiedBeds', 'freeBeds', 'occupancy',
+                'totalAppointments', 'pendingAppointments',
+                'totalPrescriptions', 'totalLabTests', 'totalReports', 'totalMedicines',
+                'income', 'expenses', 'balance'
+            );
+        });
+
+        extract($stats);
 
         // ---- recent activity -------------------------------------------------
         $recentPatients     = $this->latest('patient', ['id', 'name', 'phone', 'sex', 'age', 'add_date']);
@@ -118,7 +126,7 @@ class DashboardController extends BaseController
             return 0;
         }
 
-        return (int) DB::table($table)->whereRaw('LOWER(' . $column . ') = ?', [$value])->count();
+        return (int) DB::table($table)->where($column, $value)->count();
     }
 
     private function sum(string $table, string $column): float

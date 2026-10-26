@@ -41,6 +41,32 @@
 @php($eye = (array) (($c->specialty ?? [])['eye'] ?? []))
 @if ($eye)<h2>Eye</h2><p>@foreach ($eye as $k => $v){{ strtoupper(str_replace('_', ' ', $k)) }}: {{ $v }}; @endforeach</p>@endif
 @if ($c->follow_up_date)<h2>Follow-up</h2><p>{{ \Carbon\Carbon::parse($c->follow_up_date)->format('D d M Y') }}{{ $c->follow_up_notes ? ': ' . $c->follow_up_notes : '' }}</p>@endif
+@if (isset($prescriptions) && $prescriptions->isNotEmpty())
+  <h2>Prescription (&#8478;)</h2>
+  @foreach ($prescriptions as $rx)
+    <table style="width:100%; border-collapse:collapse; margin-bottom:10px;">
+      <thead>
+        <tr style="border-bottom:1px solid #ccc; text-align:left;">
+          <th style="padding:4px 8px;">Medicine</th>
+          <th style="padding:4px 8px;">Dosage</th>
+          <th style="padding:4px 8px;">Duration</th>
+          <th style="padding:4px 8px;">Instructions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach ($rx->items as $item)
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:4px 8px;">{{ $item->name }}</td>
+            <td style="padding:4px 8px;">{{ $item->dosage ?: '-' }}</td>
+            <td style="padding:4px 8px;">{{ $item->duration ?: '-' }}</td>
+            <td style="padding:4px 8px;">{{ $item->instructions ?: '-' }}</td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+    @if ($rx->advice)<p><strong>Rx Advice:</strong> {{ $rx->advice }}</p>@endif
+  @endforeach
+@endif
 <p style="margin-top:40px">Signature ______________________</p>
 <button onclick="window.print()">Print</button>
 </body>

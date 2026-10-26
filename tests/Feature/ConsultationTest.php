@@ -16,6 +16,8 @@ use App\Models\Doctor;
 use App\Models\Lab;
 use App\Models\LabCategory;
 use App\Models\Patient;
+use App\Models\Prescription;
+use App\Models\PrescriptionMedicine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -127,4 +129,32 @@ class ConsultationTest extends TestCase
         $this->get('/consultations')->assertOk()->assertSee('Nazish Saba');
         $this->get('/patients/' . $this->patient->id)->assertOk()->assertSee('Consultations');
     }
+
+    public function test_consultation_print_includes_prescriptions_when_present(): void
+    {
+        $v = $this->visit();
+        $this->post('/consultations/visit/' . $v->id, ['diagnosis' => 'Acute Tonsillitis']);
+        $c = Consultation::first();
+
+        $rx = Prescription::create([
+            'patient' => $this->patient->id,
+            'doctor' => $this->doctor->id,
+            'date' => $c->date,
+        ]);
+        PrescriptionMedicine::create([
+            'prescription_id' => $rx->id,
+            'name' => 'Amoxil 500mg',
+            'dosage' => '1+0+1',
+            'duration' => '5 days',
+            'instructions' => 'After food',
+        ]);
+
+        $this->get('/consultations/' . $c->id . '/print')
+            ->assertOk()
+            ->assertSee('Acute Tonsillitis')
+            ->assertSee('Prescription')
+            ->assertSee('Amoxil 500mg')
+            ->assertSee('1+0+1');
+    }
 }
+

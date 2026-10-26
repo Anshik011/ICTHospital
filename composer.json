@@ -1,7 +1,7 @@
 {
-    "name": "laravel/laravel",
+    "name": "ictinnovations/icthospital",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Hospital management software with built-in unified communications.",
     "keywords": [
         "laravel",
         "framework"
@@ -55,9 +55,7 @@
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
         ],
         "post-create-project-cmd": [
-            "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
-            "@php artisan migrate --graceful --ansi"
+            "@php artisan key:generate --ansi"
         ]
     },
     "extra": {
@@ -70,7 +68,6 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
-            "pestphp/pest-plugin": true,
             "php-http/discovery": true
         }
     },

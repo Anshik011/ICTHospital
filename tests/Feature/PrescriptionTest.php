@@ -19,6 +19,7 @@ use App\Models\MedicineCategory;
 use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\PrescriptionMedicine;
+use App\Models\PrescriptionTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -178,4 +179,72 @@ class PrescriptionTest extends TestCase
 
         $this->assertNotNull(MedicineCategory::find($category->id));
     }
+
+    public function test_prescription_printout_screen_renders_successfully(): void
+    {
+        $this->post('/prescriptions', $this->script([
+            'symptom' => 'High fever with chills',
+            'advice' => 'Rest, drink oral fluids',
+            'note' => 'Take with food',
+            'validity' => '7 days',
+        ]))->assertSessionHasNoErrors();
+
+        $prescription = Prescription::first();
+        $this->assertNotNull($prescription);
+
+        $response = $this->get('/prescriptions/' . $prescription->id . '/print');
+        $response->assertOk();
+        $response->assertSee('Amina Yousaf');
+        $response->assertSee('Dr Nadia Aslam');
+        $response->assertSee('Amoxil');
+        $response->assertSee('1+0+1');
+        $response->assertSee('5 days');
+        $response->assertSee('High fever with chills');
+        $response->assertSee('Rest, drink oral fluids');
+        $response->assertSee('Doctor Signature');
+    }
+
+    public function test_saving_prescription_as_template(): void
+    {
+        $this->post('/prescriptions', $this->script([
+            'template_name' => 'Pediatric Fever Regimen',
+            'symptom' => 'Fever and body aches',
+            'advice' => 'Frequent small sips of water',
+        ]))->assertSessionHasNoErrors();
+
+        $template = PrescriptionTemplate::where('name', 'Pediatric Fever Regimen')->first();
+        $this->assertNotNull($template, 'Template should be created when template_name is submitted');
+        $this->assertSame('Fever and body aches', $template->symptom);
+        $this->assertSame('Frequent small sips of water', $template->advice);
+        $this->assertCount(1, $template->items);
+        $this->assertSame('Amoxil', $template->items[0]['name']);
+    }
+
+    public function test_create_screen_provides_prescription_templates(): void
+    {
+        PrescriptionTemplate::create([
+            'name' => 'Post-op Pain Protocol',
+            'doctor_id' => $this->doctor->id,
+            'items' => [['name' => 'Paracetamol 500mg', 'dosage' => '1+1+1']],
+        ]);
+
+        $this->get('/prescriptions/create')
+            ->assertOk()
+            ->assertSee('Post-op Pain Protocol');
+    }
+
+    public function test_prescription_templates_can_be_deleted(): void
+    {
+        $template = PrescriptionTemplate::create([
+            'name' => 'Temporary Regimen',
+            'doctor_id' => null,
+            'items' => [['name' => 'Amoxil', 'dosage' => '1+0+1']],
+        ]);
+
+        $this->delete('/prescriptions/templates/' . $template->id)
+            ->assertRedirect();
+
+        $this->assertNull(PrescriptionTemplate::find($template->id));
+    }
 }
+

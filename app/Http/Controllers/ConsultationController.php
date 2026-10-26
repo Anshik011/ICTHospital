@@ -21,6 +21,7 @@ use App\Models\Consultation;
 use App\Models\Doctor;
 use App\Models\LabCategory;
 use App\Models\Patient;
+use App\Models\Prescription;
 use App\Support\LabOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -176,10 +177,17 @@ class ConsultationController extends BaseController
     public function printout($id)
     {
         $c = Consultation::findOrFail($id);
+        $patient = Patient::find($c->patient_id);
+        $prescriptions = $patient
+            ? Prescription::with(['items.medicine'])->where('patient', $patient->id)->where('date', $c->date)->get()
+            : collect();
 
         return view('app.consultations.print', [
-            'c' => $c, 'patient' => Patient::find($c->patient_id), 'doctor' => Doctor::find($c->doctor_id),
+            'c' => $c,
+            'patient' => $patient,
+            'doctor' => Doctor::find($c->doctor_id),
             'visit' => $c->appointment_id ? Appointment::find($c->appointment_id) : null,
+            'prescriptions' => $prescriptions,
         ]);
     }
 

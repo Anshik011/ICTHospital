@@ -195,3 +195,11 @@ table.dataTable { border-collapse: collapse !important; }
 .glyphicon-user:before{font-family:"Font Awesome 5 Free";font-weight:900;content:"\f007"}
 .glyphicon-warning-sign:before{font-family:"Font Awesome 5 Free";font-weight:900;content:"\f071"}
 .glyphicon-wrench:before{font-family:"Font Awesome 5 Free";font-weight:900;content:"\f0ad"}
+
+/* Global print rules to ensure views never render blank under browser print */
+@media print {
+  body, .animsition { opacity: 1 !important; visibility: visible !important; background: #fff !important; }
+  .menu-sidebar2, .header-desktop2, .header-button2, .copyright, aside, header { display: none !important; }
+  .page-container2 { padding-left: 0 !important; }
+  .main-content { padding-top: 0 !important; min-height: auto !important; }
+}

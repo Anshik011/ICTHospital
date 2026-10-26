@@ -21,6 +21,7 @@ use App\Models\Doctor;
 use App\Models\Medicine;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Models\PrescriptionTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -73,21 +74,57 @@ class PrescriptionController extends BaseController
             $prescription = Prescription::create($fields);
             $this->syncItems($prescription, $items);
 
+            $templateName = trim((string) $request->input('template_name', ''));
+            if ($templateName !== '') {
+                PrescriptionTemplate::create([
+                    'name' => $templateName,
+                    'doctor_id' => $prescription->doctor ?: null,
+                    'symptom' => $prescription->symptom,
+                    'advice' => $prescription->advice,
+                    'note' => $prescription->note,
+                    'validity' => $prescription->validity,
+                    'items' => $items,
+                ]);
+            }
+
             return $prescription;
         });
 
-        return redirect('/prescriptions/' . $prescription->id)->with('success', 'Prescription saved.');
+        $msg = 'Prescription saved.';
+        if ($request->filled('template_name')) {
+            $msg .= ' Saved as template "' . $request->input('template_name') . '".';
+        }
+
+        return redirect('/prescriptions/' . $prescription->id)->with('success', $msg);
     }
 
     public function show($id)
     {
-        $prescription = Prescription::with('items')->findOrFail($id);
+        $prescription = Prescription::with(['items.medicine'])->findOrFail($id);
 
         return view('app.prescriptions.show', [
             'prescription' => $prescription,
             'patient' => Patient::find($prescription->patient),
             'doctor' => Doctor::find($prescription->doctor),
         ]);
+    }
+
+    public function printout($id)
+    {
+        $prescription = Prescription::with(['items.medicine'])->findOrFail($id);
+
+        return view('app.prescriptions.print', [
+            'prescription' => $prescription,
+            'patient' => Patient::find($prescription->patient),
+            'doctor' => Doctor::find($prescription->doctor),
+        ]);
+    }
+
+    public function destroyTemplate($id)
+    {
+        PrescriptionTemplate::findOrFail($id)->delete();
+
+        return back()->with('success', 'Prescription template removed.');
     }
 
     public function edit($id)
@@ -103,9 +140,27 @@ class PrescriptionController extends BaseController
             [$fields, $items] = $this->validated($request);
             $prescription->update($fields);
             $this->syncItems($prescription, $items);
+
+            $templateName = trim((string) $request->input('template_name', ''));
+            if ($templateName !== '') {
+                PrescriptionTemplate::create([
+                    'name' => $templateName,
+                    'doctor_id' => $prescription->doctor ?: null,
+                    'symptom' => $prescription->symptom,
+                    'advice' => $prescription->advice,
+                    'note' => $prescription->note,
+                    'validity' => $prescription->validity,
+                    'items' => $items,
+                ]);
+            }
         });
 
-        return redirect('/prescriptions/' . $prescription->id)->with('success', 'Prescription updated.');
+        $msg = 'Prescription updated.';
+        if ($request->filled('template_name')) {
+            $msg .= ' Saved as template "' . $request->input('template_name') . '".';
+        }
+
+        return redirect('/prescriptions/' . $prescription->id)->with('success', $msg);
     }
 
     public function destroy($id)
@@ -228,11 +283,17 @@ class PrescriptionController extends BaseController
 
     private function formData(Prescription $prescription)
     {
+        $templates = PrescriptionTemplate::query()
+            ->when($prescription->doctor, fn ($q) => $q->where(fn ($sub) => $sub->whereNull('doctor_id')->orWhere('doctor_id', $prescription->doctor)))
+            ->orderBy('name')
+            ->get();
+
         return [
             'prescription' => $prescription,
             'patients' => Patient::orderBy('name')->get(['id', 'name', 'patient_id']),
             'doctors' => Doctor::orderBy('name')->get(['id', 'name']),
             'medicines' => Medicine::orderBy('name')->get(['id', 'name', 'generic']),
+            'templates' => $templates,
         ];
     }
 }

@@ -18,7 +18,7 @@ PASS="${3:-123456}"
 JAR="$(mktemp)"
 OUT="$(mktemp)"
 
-cd ~/dev/icthospital-app 2>/dev/null || true
+cd "$(dirname "$0")" 2>/dev/null || true
 
 # The Docker daemon lives inside WSL, so containers stop when the VM does.
 docker compose up -d >/dev/null 2>&1

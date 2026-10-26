@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 use DB;
 use App\Models\SMSLog;
+use App\Models\SmsFormat as SMS;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
 use Illuminate\Support\Facades\Redirect;

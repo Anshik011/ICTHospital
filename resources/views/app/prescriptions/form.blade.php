@@ -48,6 +48,25 @@
                         @if ($editing)
                             <input type="hidden" name="_method" value="PUT">
                         @endif
+                        @if (isset($templates) && $templates->isNotEmpty())
+                            <div class="row" style="margin-bottom:15px;">
+                                <div class="col-md-6 form-group">
+                                    <label><i class="glyphicon glyphicon-th-list"></i> Template</label>
+                                    <div class="input-group">
+                                        <select id="rx-template-select" class="form-control">
+                                            <option value="">-- Choose a prescription template --</option>
+                                            @foreach ($templates as $t)
+                                                <option value="{{ $t->id }}">{{ $t->name }}</option>
+                                            @endforeach
+                                        </select>
+                                        <span class="input-group-btn">
+                                            <button type="button" class="btn btn-default" id="rx-apply-template">Apply</button>
+                                        </span>
+                                    </div>
+                                    <span class="help-block" style="font-size:12px; margin-bottom:0;">Fills medicines, dosage, instructions, and advice.</span>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="row">
                             <div class="col-md-4 form-group">
@@ -145,6 +164,13 @@
                                    value="{{ old('validity', $prescription->validity) }}">
                         </div>
 
+                        <div class="form-group">
+                            <label>Save as a prescription template <small class="text-muted">(optional, saves medications &amp; advice for future use)</small></label>
+                            <input type="text" name="template_name" class="form-control" maxlength="120"
+                                   placeholder="e.g. Fever &amp; Pain Adult Pack, Post-op Antibiotic regimen"
+                                   value="{{ old('template_name') }}">
+                        </div>
+
                         <button type="submit" class="btn btn-primary">
                             {{ $editing ? 'Save changes' : 'Save prescription' }}
                         </button>
@@ -178,5 +204,87 @@ document.getElementById('add-row').addEventListener('click', function () {
 
     body.appendChild(copy);
 });
+
+// Prescription templates loader
+(function () {
+    var templates = @json(isset($templates) ? $templates->keyBy('id') : []);
+    var applyBtn = document.getElementById('rx-apply-template');
+    var tplSelect = document.getElementById('rx-template-select');
+    if (!applyBtn || !tplSelect) { return; }
+
+    applyBtn.addEventListener('click', function () {
+        var tplId = tplSelect.value;
+        if (!tplId || !templates[tplId]) { return; }
+        var tpl = templates[tplId];
+
+        if (tpl.symptom) {
+            var symInput = document.querySelector('[name="symptom"]');
+            if (symInput) { symInput.value = tpl.symptom; }
+        }
+        if (tpl.advice) {
+            var advInput = document.querySelector('[name="advice"]');
+            if (advInput) { advInput.value = tpl.advice; }
+        }
+        if (tpl.note) {
+            var noteInput = document.querySelector('[name="note"]');
+            if (noteInput) { noteInput.value = tpl.note; }
+        }
+        if (tpl.validity) {
+            var valInput = document.querySelector('[name="validity"]');
+            if (valInput) { valInput.value = tpl.validity; }
+        }
+
+        var items = tpl.items || [];
+        if (!Array.isArray(items) || items.length === 0) { return; }
+
+        var tbody = document.querySelector('#medicine-rows tbody');
+        var firstRow = tbody.querySelector('tr');
+        var templateRow = firstRow.cloneNode(true);
+
+        tbody.innerHTML = '';
+
+        items.forEach(function (item, idx) {
+            var row = templateRow.cloneNode(true);
+            var select = row.querySelector('select');
+            var nameInput = row.querySelector('input[name*="[name]"]');
+            var dosageInput = row.querySelector('input[name*="[dosage]"]');
+            var durInput = row.querySelector('input[name*="[duration]"]');
+            var instInput = row.querySelector('input[name*="[instructions]"]');
+
+            if (select) {
+                select.name = 'items[' + idx + '][medicine_id]';
+                select.selectedIndex = 0;
+                if (item.medicine_id) {
+                    select.value = item.medicine_id;
+                } else if (item.name) {
+                    for (var i = 0; i < select.options.length; i++) {
+                        if (select.options[i].text.toLowerCase().indexOf(item.name.toLowerCase()) !== -1) {
+                            select.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (nameInput) {
+                nameInput.name = 'items[' + idx + '][name]';
+                nameInput.value = item.name || '';
+            }
+            if (dosageInput) {
+                dosageInput.name = 'items[' + idx + '][dosage]';
+                dosageInput.value = item.dosage || '';
+            }
+            if (durInput) {
+                durInput.name = 'items[' + idx + '][duration]';
+                durInput.value = item.duration || '';
+            }
+            if (instInput) {
+                instInput.name = 'items[' + idx + '][instructions]';
+                instInput.value = item.instructions || '';
+            }
+
+            tbody.appendChild(row);
+        });
+    });
+})();
 </script>
 @stop

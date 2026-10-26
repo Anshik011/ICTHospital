@@ -9,8 +9,12 @@
 @section('style')
 <style>
 @media print {
-    .sidebar-nav, .navbar, .box-icon, .btn { display: none !important; }
-    .box-content { border: 0 !important; }
+    body, .animsition { opacity: 1 !important; visibility: visible !important; background: #fff !important; }
+    .menu-sidebar2, .header-desktop2, .header-button2, .box-icon, .btn, .copyright, aside, header, .alert { display: none !important; }
+    .page-container2, .main-content, .section__content, .container-fluid { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+    .box, .box-inner { border: 0 !important; box-shadow: none !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    .box-header { display: none !important; }
+    .box-content { padding: 0 !important; border: 0 !important; }
 }
 </style>
 @stop
@@ -34,7 +38,7 @@
                         <a href="{{ url('/prescriptions/' . $prescription->id . '/edit') }}" class="btn btn-default btn-sm">
                             <i class="glyphicon glyphicon-edit"></i> Edit
                         </a>
-                        <a href="javascript:window.print()" class="btn btn-default btn-sm">
+                        <a href="{{ url('/prescriptions/' . $prescription->id . '/print') }}" target="_blank" class="btn btn-default btn-sm">
                             <i class="glyphicon glyphicon-print"></i> Print
                         </a>
                         <a href="{{ url('/prescriptions') }}" class="btn btn-default btn-sm">Back to list</a>

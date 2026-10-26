@@ -1,12 +1,10 @@
 <?php
-use App\Models\Subject;
-use App\Models\FeeSetup;
-use App\Models\FeeCol;
+
 use App\Http\Controllers\ICTCoreController;
 use Carbon\Carbon;
-//use Storage;
-class emtysession{
+use Illuminate\Support\Facades\Storage;
 
+class emtysession{
 }
 if (! function_exists('FixData')) {
 	

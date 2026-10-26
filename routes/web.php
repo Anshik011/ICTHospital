@@ -58,7 +58,7 @@ Route::get('/session', [UsersController::class, 'session']);
 Route::group(['middleware' => ['web', 'activity']], function () {
     Route::get('/', [HomeController::class, 'index'])->name("login");
     Route::get('/dashboard/', [DashboardController::class, 'index']);
-    Route::post('/users/login', [UsersController::class, 'postSignin']);
+    Route::post('/users/login', [UsersController::class, 'postSignin'])->middleware('throttle:5,1');
     Route::get('/verification_code', [UsersController::class, 'codeverify']);
     Route::post('/users/code_check', [UsersController::class, 'code_check']);
     Route::get('/verify_code', [UsersController::class, 'verify_code']);
@@ -384,9 +384,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/prescriptions/create', [PrescriptionController::class, 'create'])->middleware('checkPermission:prescription_add');
     Route::post('/prescriptions', [PrescriptionController::class, 'store'])->middleware('checkPermission:prescription_add');
     Route::get('/prescriptions/{id}', [PrescriptionController::class, 'show'])->whereNumber('id')->middleware('checkPermission:prescription_view');
+    Route::get('/prescriptions/{id}/print', [PrescriptionController::class, 'printout'])->whereNumber('id')->middleware('checkPermission:prescription_view');
     Route::get('/prescriptions/{id}/edit', [PrescriptionController::class, 'edit'])->whereNumber('id')->middleware('checkPermission:prescription_update');
     Route::put('/prescriptions/{id}', [PrescriptionController::class, 'update'])->whereNumber('id')->middleware('checkPermission:prescription_update');
     Route::delete('/prescriptions/{id}', [PrescriptionController::class, 'destroy'])->whereNumber('id')->middleware('checkPermission:prescription_delete');
+    Route::delete('/prescriptions/templates/{id}', [PrescriptionController::class, 'destroyTemplate'])->whereNumber('id')->middleware('checkPermission:prescription_add');
 });
 
 

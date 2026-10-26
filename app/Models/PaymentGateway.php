@@ -23,4 +23,18 @@ class PaymentGateway extends Model
         'APISignature',
         'status',
     ];
+
+    /**
+     * The attributes that should be cast to native types.
+     * Secrets are encrypted at rest using Laravel application key.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'merchant_key' => 'encrypted',
+        'salt'         => 'encrypted',
+        'APIUsername'  => 'encrypted',
+        'APIPassword'  => 'encrypted',
+        'APISignature' => 'encrypted',
+    ];
 }

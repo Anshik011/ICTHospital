@@ -218,7 +218,13 @@
         if (!t) { return; }
         Object.keys(t).forEach(function (k) {
             var el = document.querySelector('#consult-form [name="' + k + '"]');
-            if (el && t[k] && !el.value) { el.value = t[k]; }
+            if (el && t[k]) {
+                if (!el.value.trim() || el.value === t[k]) {
+                    el.value = t[k];
+                } else if (confirm('Replace existing text in ' + k.replace(/_/g, ' ') + ' with template content?')) {
+                    el.value = t[k];
+                }
+            }
         });
     });
 })();
