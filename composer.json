@@ -67,6 +67,33 @@
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
+        "platform-check": false,
+        "platform": {
+            "php": "8.3.36",
+            "ext-bcmath": "1",
+            "ext-ctype": "1",
+            "ext-dom": "1",
+            "ext-fileinfo": "1",
+            "ext-filter": "1",
+            "ext-gd": "1",
+            "ext-hash": "1",
+            "ext-iconv": "1",
+            "ext-intl": "1",
+            "ext-json": "1",
+            "ext-libxml": "1",
+            "ext-mbstring": "1",
+            "ext-openssl": "1",
+            "ext-pcre": "1",
+            "ext-pdo": "1",
+            "ext-pdo_mysql": "1",
+            "ext-simplexml": "1",
+            "ext-tokenizer": "1",
+            "ext-xml": "1",
+            "ext-xmlreader": "1",
+            "ext-xmlwriter": "1",
+            "ext-zip": "1",
+            "ext-zlib": "1"
+        },
         "allow-plugins": {
             "php-http/discovery": true
         }
