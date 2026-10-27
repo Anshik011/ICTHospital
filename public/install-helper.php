@@ -97,10 +97,30 @@ if ($isAuthenticated && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $exitCode = Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
             $actionOutput = Illuminate\Support\Facades\Artisan::output();
 
-            // Generate passport encryption keys if missing
-            if (!file_exists($baseDir . '/storage/oauth-private.key')) {
-                Illuminate\Support\Facades\Artisan::call('passport:keys', ['--force' => true]);
-                $actionOutput .= "\n" . Illuminate\Support\Facades\Artisan::output();
+            // Generate passport encryption keys natively via OpenSSL if missing
+            $privKeyFile = $baseDir . '/storage/oauth-private.key';
+            $pubKeyFile = $baseDir . '/storage/oauth-public.key';
+            if (!file_exists($privKeyFile) || !file_exists($pubKeyFile)) {
+                try {
+                    $res = @openssl_pkey_new([
+                        'private_key_bits' => 4096,
+                        'private_key_type' => OPENSSL_KEYTYPE_RSA,
+                    ]);
+                    if ($res) {
+                        @openssl_pkey_export($res, $privKey);
+                        $details = @openssl_pkey_get_details($res);
+                        $pubKey = $details['key'] ?? '';
+                        if (!empty($privKey) && !empty($pubKey)) {
+                            @file_put_contents($privKeyFile, $privKey);
+                            @file_put_contents($pubKeyFile, $pubKey);
+                            @chmod($privKeyFile, 0600);
+                            @chmod($pubKeyFile, 0600);
+                            $actionOutput .= "\nOAuth encryption keys generated successfully.";
+                        }
+                    }
+                } catch (\Throwable $keyEx) {
+                    // Non-fatal fallback
+                }
             }
 
             $message = $exitCode === 0 ? 'Migrations executed successfully!' : 'Migration finished with exit code: ' . $exitCode;
