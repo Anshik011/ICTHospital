@@ -23,14 +23,7 @@ session_start();
 $baseDir = dirname(__DIR__);
 $lockFile = $baseDir . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'installed.lock';
 
-// 1. Check if already locked
-if (file_exists($lockFile)) {
-    http_response_code(403);
-    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Setup Locked - ICTHospital</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;padding:48px 24px;text-align:center;} .box{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);} h1{font-size:24px;margin-bottom:12px;color:#0f172a;} p{font-size:15px;line-height:1.6;color:#475569;} a{color:#2563eb;text-decoration:none;font-weight:600;}</style></head><body><div class="box"><h1>Setup Locked</h1><p>The installation helper has already been locked for security. To re-enable it, remove <code>storage/installed.lock</code> via your hosting File Manager.</p><p><a href="/">&larr; Return to Hospital Portal</a></p></div></body></html>';
-    exit;
-}
-
-// 2. Load .env variables manually to avoid early booting issues
+// 1. Load .env variables manually to avoid early booting issues
 $envFile = $baseDir . DIRECTORY_SEPARATOR . '.env';
 $envVars = [];
 if (file_exists($envFile)) {
@@ -59,6 +52,55 @@ $isAuthenticated = false;
 if (!empty($expectedKey) && hash_equals($expectedKey, (string)$providedKey)) {
     $isAuthenticated = true;
     $_SESSION['install_helper_auth'] = $providedKey;
+}
+
+// Direct programmatic rebrand / migration execution
+if ($isAuthenticated && (($_GET['action'] ?? '') === 'auto_rebrand' || ($_POST['action'] ?? '') === 'auto_rebrand')) {
+    header('Content-Type: application/json');
+    $res = ['success' => false, 'log' => []];
+    try {
+        require_once $baseDir . '/vendor/autoload.php';
+        $app = require_once $baseDir . '/bootstrap/app.php';
+        $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+        $kernel->bootstrap();
+
+        // 1. Run migrations
+        Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $res['log'][] = 'Migrations: ' . trim(Illuminate\Support\Facades\Artisan::output());
+
+        // 2. Rebrand institute table
+        if (Illuminate\Support\Facades\Schema::hasTable('institute')) {
+            $updated = Illuminate\Support\Facades\DB::table('institute')->update([
+                'name' => 'Uptoware Clinic',
+                'web' => 'https://uptoware.com',
+                'email' => 'contact@uptoware.com',
+            ]);
+            $res['log'][] = "Institute table updated: {$updated} rows updated to 'Uptoware Clinic'.";
+        }
+
+        // 3. Clear and regenerate caches
+        Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        $res['log'][] = 'Caches cleared: ' . trim(Illuminate\Support\Facades\Artisan::output());
+        Illuminate\Support\Facades\Artisan::call('optimize');
+        $res['log'][] = 'Optimized: ' . trim(Illuminate\Support\Facades\Artisan::output());
+
+        // 4. Re-lock and remove
+        file_put_contents($lockFile, 'Installed and locked at ' . date('c'));
+        @unlink(__FILE__);
+        $res['success'] = true;
+        $res['message'] = 'Uptoware rebranding, migrations, and cache rebuild completed successfully!';
+    } catch (\Throwable $e) {
+        $res['error'] = $e->getMessage();
+    }
+    echo json_encode($res, JSON_PRETTY_PRINT);
+    exit;
+}
+
+// Check if locked for browser interactive UI
+if (file_exists($lockFile)) {
+    http_response_code(403);
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Setup Locked - Uptoware Clinic</title><style>body{font-family:system-ui,-apple-system,sans-serif;background:#f8fafc;color:#1e293b;padding:48px 24px;text-align:center;} .box{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);} h1{font-size:24px;margin-bottom:12px;color:#0f172a;} p{font-size:15px;line-height:1.6;color:#475569;} a{color:#0f766e;text-decoration:none;font-weight:600;}</style></head><body><div class="box"><h1>Setup Locked</h1><p>The installation helper has already been locked for security. To re-enable it, remove <code>storage/installed.lock</code> via your hosting File Manager.</p><p><a href="/">&larr; Return to Uptoware Clinic Portal</a></p></div></body></html>';
+    exit;
 }
 
 // Handle self-lock / delete action
@@ -224,7 +266,7 @@ $envExists = file_exists($envFile);
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shared Hosting Setup Helper - ICTHospital</title>
+    <title>Shared Hosting Setup Helper - Uptoware Clinic</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">

@@ -67,7 +67,7 @@ class UsersController extends BaseController
               ->withInput($request->all())->with('error', 'Institute Information not setup yet!Please contact administrator.');
           } else {
             $institute = new Institute;
-            $institute->name = "IctVission";
+            $institute->name = "Uptoware Clinic";
             \Session::put('inName', $institute->name);
             return Redirect::to('/institute')->with('error', 'Please provide institute information!');
           }
@@ -131,7 +131,7 @@ class UsersController extends BaseController
     $institute = Institute::select('name')->first();
     if (!$institute) {
       $institute = new Institute;
-      $institute->name = "ictvission";
+      $institute->name = "Uptoware Clinic";
     }
     $id = $request->get('id');
     return view('verificationcode', compact('institute', 'id'));
@@ -163,7 +163,7 @@ class UsersController extends BaseController
     $institute = Institute::select('name')->first();
     if (!$institute) {
       $institute = new Institute;
-      $institute->name = "IctVission";
+      $institute->name = "Uptoware Clinic";
     }
     return View('app.users.verify', compact('error', 'institute'));
   }
@@ -213,7 +213,7 @@ class UsersController extends BaseController
               ->withInput($request->all())->with('error', 'Institute Information not setup yet!Please contact administrator.');
           } else {
             $institute = new Institute;
-            $institute->name = "IctVission";
+            $institute->name = "Uptoware Clinic";
             \Session::put('inName', $institute->name);
             return Redirect::to('/institute')->with('error', 'Please provide institute information!');
           }

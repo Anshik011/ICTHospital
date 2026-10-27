@@ -10,7 +10,7 @@
       Licensed under the GNU General Public License v3.0.
     --}}
     <meta charset="utf-8">
-    <title>Sign in · {{ $institute->name ?? 'ICTHospital' }}</title>
+    <title>Sign in · {{ $institute->name ?? 'Uptoware Clinic' }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
     <link rel="icon" type="image/svg+xml" href="{{ asset('img/brand/icthospital-mark.svg') }}">
@@ -58,9 +58,9 @@
 <body>
 <div class="ih-login">
     <aside class="ih-side">
-        <img src="{{ asset('img/brand/icthospital-logo-white.svg') }}" alt="ICTHospital">
+        <img src="{{ asset('img/brand/icthospital-logo-white.svg') }}" alt="Uptoware Clinic">
         <div style="position:relative;z-index:1">
-            <h1>Run your hospital from one place.</h1>
+            <h1>Run your clinic from one place.</h1>
             <p>Patients, appointments, wards, pharmacy, laboratory and billing, with the front desk and the doctors on the same record.</p>
             <ul>
                 <li><i class="fas fa-user-injured"></i> Patient records and medical history</li>
@@ -68,14 +68,14 @@
                 <li><i class="fas fa-file-invoice-dollar"></i> Billing, cash closing and doctor share</li>
             </ul>
         </div>
-        <small>ICTHospital by ICT Innovations</small>
+        <small>Uptoware Clinic · by Uptoware</small>
     </aside>
 
     <main class="ih-main">
         <div class="ih-card">
-            <img class="ih-mobile-logo" src="{{ asset('img/brand/icthospital-logo.svg') }}" alt="ICTHospital">
+            <img class="ih-mobile-logo" src="{{ asset('img/brand/icthospital-logo.svg') }}" alt="Uptoware Clinic">
             <h2>Sign in</h2>
-            <p class="ih-sub">Welcome to {{ $institute->name ?? 'ICTHospital' }}. Use your staff account.</p>
+            <p class="ih-sub">Welcome to {{ $institute->name ?? 'Uptoware Clinic' }}. Use your staff account.</p>
 
             @if (Session::get('message'))
                 <div class="ih-alert ok"><i class="fas fa-check-circle"></i><span>{{ Session::get('message') }}</span></div>
@@ -101,7 +101,7 @@
                 <button type="submit" class="ih-btn">Sign in</button>
             </form>
 
-            <div class="ih-foot">&copy; {{ date('Y') }} {{ $institute->name ?? 'ICTHospital' }} · Developed by <a href="https://www.ictinnovations.com/" target="_blank" rel="noopener">ICT Innovations</a></div>
+            <div class="ih-foot">&copy; {{ date('Y') }} {{ $institute->name ?? 'Uptoware Clinic' }} · Developed by <a href="https://uptoware.com/" target="_blank" rel="noopener">Uptoware</a></div>
         </div>
     </main>
 </div>

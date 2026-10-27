@@ -72,10 +72,10 @@ class UserTableSeeder extends Seeder
         }
 
         Institute::create([
-            'name' => 'ICTHospital',
+            'name' => 'Uptoware Clinic',
             'establish' => date('Y'),
-            'email' => '',
-            'web' => '',
+            'email' => 'contact@uptoware.com',
+            'web' => 'https://uptoware.com',
             'phoneNo' => '',
             'address' => '',
         ]);

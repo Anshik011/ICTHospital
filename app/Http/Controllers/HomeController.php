@@ -33,7 +33,7 @@ class HomeController extends BaseController
 		$institute = Institute::select('name')->first();
 		if (!$institute) {
 			$institute = new Institute;
-			$institute->name = "ictvission";
+			$institute->name = "Uptoware Clinic";
 		}
 		//return View::make('login',compact('error','institute'));
 		return view('login', compact('error', 'institute'));

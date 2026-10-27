@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="230" height="230" viewBox="0 0 230 230">
+  <defs>
+    <linearGradient id="uptoware-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14b8a6"/>
+      <stop offset="50%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#0b4f4a"/>
+    </linearGradient>
+  </defs>
+  <rect width="230" height="230" rx="52" fill="url(#uptoware-grad)"/>
+  <rect x="88" y="40" width="54" height="150" rx="14" fill="#ffffff"/>
+  <rect x="40" y="88" width="150" height="54" rx="14" fill="#ffffff"/>
+  <path d="M48 115 H84 l12 -22 l18 46 l16 -34 l10 10 H182" fill="none" stroke="#0f766e" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
