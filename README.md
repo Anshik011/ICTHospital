@@ -211,6 +211,17 @@ docker compose exec app php artisan migrate --seed
 
 The application is then on http://localhost:8082.
 
+### Shared Hosting (Hostinger / cPanel)
+
+ICTHospital includes turnkey support for shared hosting environments without needing a dedicated VPS:
+
+- **Root `.htaccess`**: Enables secure routing directly from `public_html/` with strict blocking of `.env`, `.git`, `composer.*`, and log directories.
+- **Dedicated Environment Template**: `.env.shared-hosting.example` pre-configured for shared hosting MySQL, sync queue, daily log rotation, and file caching.
+- **One-Command SSH Deployment Script**: `bash deploy-shared-hosting.sh` checks PHP versions, directory permissions, installs dependencies, migrates database, links storage, and optimizes production caches.
+- **No-SSH Web Setup Helper**: `public/install-helper.php` enables running database migrations, storage symlinks, and cache generation from a token-protected web wizard.
+
+See the complete step-by-step guide in **[docs/SHARED_HOSTING_DEPLOYMENT.md](docs/SHARED_HOSTING_DEPLOYMENT.md)**.
+
 ## Schema modernisation
 
 The schema was carried over from the original application exactly as it was, which means

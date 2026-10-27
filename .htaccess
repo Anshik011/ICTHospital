@@ -1,0 +1,82 @@
+# ----------------------------------------------------------------------
+# ICTHospital - Shared Hosting Root .htaccess
+#
+# This file enables running ICTHospital on shared hosting (e.g. Hostinger,
+# cPanel, Plesk) when the project root is placed in public_html.
+#
+# 1. Rewrites all incoming HTTP requests to the /public folder securely.
+# 2. Blocks direct web access to sensitive environment, config & log files.
+# 3. Enables Gzip/Deflate compression and browser caching.
+#
+# Copyright (c) ICT Innovations <https://www.ictinnovations.com>
+# Part of ICTHospital <https://www.icthospital.com>
+# Licensed under the GNU General Public License v3.0.
+# ----------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Prevent directory browsing
+    Options -Indexes
+
+    # Block access to hidden files and sensitive directories
+    RewriteRule (^|/)\.(?!well-known) - [F,L]
+    RewriteRule ^(\.env|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml|Dockerfile|docker-compose\.yml|smoke-test\.sh) - [F,L,NC]
+    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage/logs|tests)/ - [F,L,NC]
+
+    # Handle Authorization Header for APIs / Basic Auth
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Redirect requests to /public if not already targeting it
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Ensure root domain request loads public/index.php
+    RewriteRule ^$ public/index.php [L]
+</IfModule>
+
+# Security: Block sensitive file extensions across any engine
+<FilesMatch "^(\.env|\.git|\.yml|\.yaml|composer\.(json|lock)|package\.(json|lock)|phpunit\.xml)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Performance: Compression for CSS, JS, SVG, and Fonts
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# Caching: Leverage browser cache for static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-javascript "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+</IfModule>
