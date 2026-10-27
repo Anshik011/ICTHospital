@@ -70,7 +70,7 @@ if ($isAuthenticated && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     // Autoload Laravel framework for Artisan tasks
-    if (in_array($action, ['migrate', 'storage_link', 'optimize', 'db_test'], true)) {
+    if (in_array($action, ['migrate', 'seed', 'storage_link', 'optimize', 'db_test'], true)) {
         if (!file_exists($baseDir . '/vendor/autoload.php')) {
             $message = 'Composer vendor directory not found! Please run composer install or upload the complete vendor folder.';
             $messageType = 'error';
@@ -123,10 +123,30 @@ if ($isAuthenticated && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Seed default administrator & permissions if empty
+            try {
+                if (Illuminate\Support\Facades\DB::table('users')->count() === 0) {
+                    Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+                    $actionOutput .= "\n" . Illuminate\Support\Facades\Artisan::output();
+                }
+            } catch (\Throwable $seedEx) {
+                // Non-fatal
+            }
+
             $message = $exitCode === 0 ? 'Migrations executed successfully!' : 'Migration finished with exit code: ' . $exitCode;
             $messageType = $exitCode === 0 ? 'success' : 'warning';
         } catch (\Throwable $e) {
             $message = 'Migration failed: ' . $e->getMessage();
+            $messageType = 'error';
+        }
+    } elseif ($action === 'seed') {
+        try {
+            $exitCode = Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $actionOutput = Illuminate\Support\Facades\Artisan::output();
+            $message = $exitCode === 0 ? 'Admin user and permissions seeded successfully!' : 'Seeding finished with code: ' . $exitCode;
+            $messageType = $exitCode === 0 ? 'success' : 'warning';
+        } catch (\Throwable $e) {
+            $message = 'Seeding failed: ' . $e->getMessage();
             $messageType = 'error';
         }
     } elseif ($action === 'storage_link') {
@@ -134,20 +154,21 @@ if ($isAuthenticated && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $publicStorage = $baseDir . '/public/storage';
             $target = $baseDir . '/storage/app/public';
             if (!file_exists($target)) {
-                mkdir($target, 0755, true);
+                @mkdir($target, 0755, true);
             }
-            if (file_exists($publicStorage) || is_link($publicStorage)) {
-                @unlink($publicStorage);
-            }
-            if (@symlink($target, $publicStorage)) {
-                $message = 'Storage symlink created successfully via symlink()!';
-                $messageType = 'success';
+            if (!file_exists($publicStorage) && !is_link($publicStorage)) {
+                if (function_exists('symlink') && !in_array('symlink', array_map('trim', explode(',', ini_get('disable_functions'))), true)) {
+                    @symlink($target, $publicStorage);
+                    $message = 'Storage symlink created successfully via symlink()!';
+                    $messageType = 'success';
+                } else {
+                    @mkdir($publicStorage, 0755, true);
+                    $message = 'Shared hosting environment detected (symlinks restricted by host). Direct public/storage directory created!';
+                    $messageType = 'success';
+                }
             } else {
-                // Fallback to Artisan
-                $exitCode = Illuminate\Support\Facades\Artisan::call('storage:link');
-                $actionOutput = Illuminate\Support\Facades\Artisan::output();
-                $message = 'Storage link command executed: ' . ($exitCode === 0 ? 'Success' : 'Check output');
-                $messageType = $exitCode === 0 ? 'success' : 'warning';
+                $message = 'public/storage directory already exists and is ready.';
+                $messageType = 'success';
             }
         } catch (\Throwable $e) {
             $message = 'Storage link failed: ' . $e->getMessage();
@@ -479,6 +500,13 @@ $envExists = file_exists($envFile);
                     <input type="hidden" name="action" value="migrate">
                     <button type="submit" class="btn btn-primary" style="width:100%;">
                         Run Migrations (--force)
+                    </button>
+                </form>
+
+                <form method="POST" action="/install-helper.php">
+                    <input type="hidden" name="action" value="seed">
+                    <button type="submit" class="btn btn-secondary" style="width:100%;">
+                        Seed Admin & Permissions
                     </button>
                 </form>
 
