@@ -14,7 +14,9 @@ use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\DoctorSlot;
 use App\Models\Patient;
+use App\Models\PatientType;
 use App\Models\PaymentCategory;
+use App\Models\ServicePrice;
 use App\Models\SlotBlock;
 use App\Models\VisitFee;
 use App\Support\Billing;
@@ -180,9 +182,7 @@ class OpdController extends BaseController
 
     private function nextToken($doctorId, $date)
     {
-        $max = Appointment::where('doctor', $doctorId)->whereDate('date', Carbon::parse($date)->toDateString())->lockForUpdate()->max('token_no');
-
-        return ((int) $max) + 1;
+        return Appointment::nextToken($doctorId, $date);
     }
 
     private function billFor(Appointment $visit)
@@ -198,8 +198,15 @@ class OpdController extends BaseController
         }
 
         $patient = Patient::findOrFail($visit->patient);
-        $invoice = DB::transaction(function () use ($patient, $visit, $service, $fee) {
-            $invoice = Billing::raise($patient, $visit->doctor, [['service' => $service, 'price' => $fee->fee]], 'opd', 'OPD visit, token ' . $visit->token_no);
+
+        // A patient type with its own OPD price for the service (a panel, a charity rate)
+        // pays that price; the fixed visit fee is for types that have none.
+        $typeId = $patient->patient_type_id ?: PatientType::defaultId();
+        $typePrice = $typeId ? ServicePrice::where('payment_category_id', $service->id)->where('patient_type_id', $typeId)->value('opd_price') : null;
+        $price = $typePrice !== null ? null : $fee->fee;
+
+        $invoice = DB::transaction(function () use ($patient, $visit, $service, $price) {
+            $invoice = Billing::raise($patient, $visit->doctor, [['service' => $service, 'price' => $price]], 'opd', 'OPD visit, token ' . $visit->token_no);
             $visit->update(['payment_id' => $invoice->id]);
 
             return $invoice;
@@ -232,6 +239,22 @@ class OpdController extends BaseController
         ]);
         $data['doctor_id'] = $data['doctor_id'] ?? null;
         $data['fee'] = isset($data['fee']) && $data['fee'] !== '' ? $data['fee'] : null;
+
+        // Only one row can apply to a visit. A second row for the same doctor, visit type
+        // and shift would never be billed, so refuse it and say which row is in the way.
+        $clash = VisitFee::where('active', true)->where('visit_type', $data['visit_type'])->where('shift', $data['shift'])
+            ->where(fn ($q) => $data['doctor_id'] ? $q->where('doctor_id', $data['doctor_id']) : $q->whereNull('doctor_id'))
+            ->first();
+        if ($clash) {
+            return redirect('/opd/visit-fees')->withInput()->with('error', sprintf(
+                'There is already a fee for %s, %s, %s (%s). Remove that row first, or add the fee for one doctor or one shift.',
+                $data['doctor_id'] ? (Doctor::whereKey($data['doctor_id'])->value('name') ?: 'that doctor') : 'all doctors',
+                strtolower(VisitFee::TYPES[$data['visit_type']] ?? $data['visit_type']),
+                strtolower(VisitFee::SHIFTS[$data['shift']] ?? $data['shift']),
+                PaymentCategory::whereKey($clash->payment_category_id)->value('category') ?: 'a service'
+            ));
+        }
+
         VisitFee::create($data + ['active' => true]);
 
         return redirect('/opd/visit-fees')->with('success', 'Visit fee added.');

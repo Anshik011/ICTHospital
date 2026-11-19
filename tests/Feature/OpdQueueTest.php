@@ -132,6 +132,19 @@ class OpdQueueTest extends TestCase
         $this->assertSame('800.00', (string) VisitFee::resolve($this->doctor->id, 'follow_up', Carbon::parse('2026-10-26 17:00'))->fee);
     }
 
+    public function test_a_type_price_beats_a_fixed_visit_fee(): void
+    {
+        $panel = PatientType::create(['name' => 'Panel C', 'kind' => 'panel', 'active' => true]);
+        ServicePrice::create(['payment_category_id' => $this->consult->id, 'patient_type_id' => $panel->id, 'opd_price' => 1800]);
+        VisitFee::create(['visit_type' => 'first', 'shift' => 'any', 'payment_category_id' => $this->consult->id, 'fee' => 1000, 'active' => true]);
+        $p = $this->patient('Panel Patient', '000044', ['patient_type_id' => $panel->id]);
+
+        $this->post('/opd/walk-in', ['patient' => $p->id, 'doctor' => $this->doctor->id, 'visit_type' => 'first', 'bill' => 1]);
+        $this->post('/opd/walk-in', ['patient' => $this->p1->id, 'doctor' => $this->doctor->id, 'visit_type' => 'first', 'bill' => 1]);
+
+        $this->assertSame(['1800.00', '1000.00'], Payment::orderBy('id')->pluck('gross_total')->map(fn ($v) => (string) $v)->all());
+    }
+
     public function test_a_blank_visit_fee_uses_the_patient_type_price(): void
     {
         $panel = PatientType::create(['name' => 'Panel B', 'kind' => 'panel', 'active' => true]);
@@ -145,6 +158,7 @@ class OpdQueueTest extends TestCase
 
     public function test_bookings_must_fit_the_doctors_slots_once_set(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-10-26 08:00:00')); // slots before the usual 10:00 test clock
         $this->book($this->p1, '18:00')->assertSessionHasNoErrors(); // no slots yet: any time
 
         DoctorSlot::create(['doctor_id' => $this->doctor->id, 'weekday' => 1, 'start_time' => '09:00', 'end_time' => '13:00', 'slot_minutes' => 15, 'active' => true]);
@@ -160,6 +174,7 @@ class OpdQueueTest extends TestCase
 
     public function test_free_slots_leave_out_bookings_and_blocks(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-10-26 08:00:00')); // slots before the usual 10:00 test clock
         DoctorSlot::create(['doctor_id' => $this->doctor->id, 'weekday' => 1, 'start_time' => '09:00', 'end_time' => '10:00', 'slot_minutes' => 15, 'active' => true]);
         SlotBlock::create(['doctor_id' => $this->doctor->id, 'date' => '2026-10-26', 'start_time' => '09:45', 'end_time' => '10:00']);
         $this->book($this->p1, '09:15');

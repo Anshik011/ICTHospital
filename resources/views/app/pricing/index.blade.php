@@ -8,6 +8,7 @@
 @extends('layouts.master')
 @section('content')
     @include('app.partials._alerts')
+    @php($canEdit = \App\Support\Permissions::allows('service_update'))
     <div class="row">
         <div class="box col-md-12">
             <div class="box-inner">
@@ -63,9 +64,10 @@
                         </table>
                         </div>
                         <p class="help-block">A blank box means this type pays the list price for that service.</p>
-                        <button class="btn btn-primary">Save price list</button>
+                        @if ($canEdit)<button class="btn btn-primary">Save price list</button>@endif
                     </form>
 
+                    @if ($canEdit)
                     <hr>
                     <div class="row">
                         <div class="col-md-6">
@@ -78,6 +80,14 @@
                                 <button class="btn btn-default" onclick="return confirm('Change every price for this type?')">Update pricing list</button>
                             </form>
                             <p class="help-block">Use a minus number to lower prices. Services without a price for this type start from the list price.</p>
+                            <h4 style="margin-top:18px">Reset to list price</h4>
+                            <form method="post" action="{{ url('/pricing/reset') }}" class="form-inline">
+                                {{ csrf_field() }}
+                                <input type="hidden" name="type" value="{{ $typeId }}">
+                                <select name="setting" class="form-control"><option value="both">OPD and IPD</option><option value="opd">OPD only</option><option value="ipd">IPD only</option></select>
+                                <button class="btn btn-default" onclick="return confirm('Clear every price for this patient type so the list price applies again?')">Reset to list price</button>
+                            </form>
+                            <p class="help-block">Clears this type's own prices, so every service goes back to its list price. Lowering by the same percent does not undo a rise.</p>
                         </div>
                         <div class="col-md-6">
                             <h4>Copy pricing list</h4>
@@ -89,6 +99,7 @@
                             </form>
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
